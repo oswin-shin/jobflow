@@ -1,9 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
+import { pool } from '../db/pool';
 
 const router = express.Router();
-
-const users: any[] = [];
 
 router.post('/register', async (req, res) => {
     try {
@@ -14,25 +13,29 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        const existingUser = users.find((user) => user.email === email);
-        if (existingUser) {
+        const existingUser = await pool.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
+        )
+        if (existingUser.rows.length > 0) {
             return res.status(400).json({
                 error: 'User already exists',
             });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = {
-            email,
-            password: hashedPassword,
-        };
 
-        users.push(newUser);
+        await pool.query(
+            'INSERT INTO users (email, password) VALUES ($1, $2)',
+            [email, hashedPassword]
+        );
 
         res.status(201).json({
             message: 'User registered successfully',
         });
     } catch (e) {
+        console.error(e);
+
         res.status(500).json({
             error: 'Internal server error',
         });
@@ -49,12 +52,17 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        const user = users.find((user) => user.email === email);
-        if (!user) {
+        const result = await pool.query(
+            'SELECT id, email, password FROM users WHERE email = $1',
+            [email]
+        )
+        if (result.rows.length === 0) {
             return res.status(401).json({
                 error: 'Invalid email or password',
             });
         }
+        
+        const user = result.rows[0];
 
         const passwordMatches = await bcrypt.compare(password, user.password);
         if (!passwordMatches) {
@@ -66,10 +74,13 @@ router.post('/login', async (req, res) => {
         res.json({
             message: 'Login successful',
             user: {
+                id: user.id,
                 email: user.email,
             },
         });
     } catch (e) {
+        console.error(e);
+        
         res.status(500).json({
             error: 'Internal server error',
         });
@@ -82,10 +93,20 @@ router.get('/test', (req, res) => {
     });
 });
 
-router.get('/users', (req, res) => {
-    res.json({
-        users: users,
-    })
+router.get('/users', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, email, created_at FROM users'
+        );
+
+        res.json({
+            users: result.rows,
+        });
+    } catch (e)  {
+        res.status(500).json({
+            error: 'Internal server error',
+        });
+    }
 })
 
 export default router;
