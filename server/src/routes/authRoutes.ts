@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../db/pool';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -71,8 +72,20 @@ router.post('/login', async (req, res) => {
             });
         }
 
+        const token = jwt.sign(
+            {
+                userId: user.id,
+                email: user.email,
+            },
+            process.env.JWT_SECRET as string,
+            {
+                expiresIn: '1H',
+            }
+        )
+
         res.json({
             message: 'Login successful',
+            token,
             user: {
                 id: user.id,
                 email: user.email,
