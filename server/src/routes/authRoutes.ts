@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../db/pool';
 import jwt from 'jsonwebtoken';
+import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
@@ -83,6 +84,8 @@ router.post('/login', async (req, res) => {
             }
         )
 
+        console.log(token);
+
         res.json({
             message: 'Login successful',
             token,
@@ -121,5 +124,11 @@ router.get('/users', async (req, res) => {
         });
     }
 })
+
+router.get('/me', authMiddleware, async (req: AuthRequest, res) => {
+    res.json({
+        user: req.user,
+    });
+});
 
 export default router;
