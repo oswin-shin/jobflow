@@ -1,5 +1,6 @@
 import express from 'express';
 import authRoutes from './routes/authRoutes';
+import jobRoutes from './routes/jobRoutes';
 import { pool } from './db/pool';
 
 const app = express();
@@ -13,6 +14,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/auth', authRoutes);
+
+app.use('/jobs', jobRoutes);
 
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
