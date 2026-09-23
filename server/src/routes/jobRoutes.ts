@@ -12,7 +12,10 @@ router.get('/', authMiddleware, async (req: AuthRequest, res) => {
             `
             SELECT id, company, title, notes
             FROM jobs
-            `
+            WHERE user_id = $1
+            AND
+            `,
+            [userId]
         )
 
         const jobs = result.rows;
